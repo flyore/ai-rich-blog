@@ -6,7 +6,7 @@ export default function Comments() {
   const [copied, setCopied] = useState(false)
 
   function copyEmail() {
-    navigator.clipboard.writeText('ai.rich.blog.kr@gmail.com')
+    navigator.clipboard.writeText('ozstory55@gmail.com')
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
