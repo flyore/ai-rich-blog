@@ -1,0 +1,49 @@
+name: 매일 블로그 글 자동 생성
+
+on:
+  schedule:
+    # 매일 오전 9시 (한국 시간 = UTC+9, 즉 UTC 00:00)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 수동 실행도 가능
+
+jobs:
+  generate-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: Anthropic SDK 설치
+        run: npm install @anthropic-ai/sdk
+
+      - name: 블로그 글 생성
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/generate-post.mjs
+
+      - name: 변경사항 커밋 & 푸시
+        run: |
+          git config user.name "AI Blog Bot"
+          git config user.email "bot@ai-rich-blog.com"
+          git add posts/
+          git diff --staged --quiet || git commit -m "feat: 오늘의 자동 블로그 글 추가 $(date +%Y-%m-%d)"
+          git push
+
+      - name: Vercel 배포
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel
+          vercel deploy --prod --token=$VERCEL_TOKEN
